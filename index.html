@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Покерные тренажёры</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #0f3d2e;
+  color: #fff;
+  margin: 0;
+  padding: 20px;
+}
+.wrap {
+  max-width: 1100px;
+  margin: auto;
+}
+h1 {
+  text-align: center;
+  font-size: 26px;
+  margin: 10px 0 20px;
+}
+.game-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.game-tab {
+  background: #334155;
+  color: #fff;
+}
+.game-tab.active {
+  background: #fbbf24;
+  color: #111;
+}
+.game {
+  display: none;
+}
+.game.active {
+  display: block;
+}
+.board {
+  background: #166534;
+  border: 3px solid #854d0e;
+  border-radius: 14px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+.board-title {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.cards {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.card {
+  position: relative;
+  width: 78px;
+  height: 112px;
+  background: #fff;
+  color: #111;
+  border-radius: 9px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.35);
+  user-select: none;
+}
+.card .corner {
+  position: absolute;
+  font-size: 17px;
+  font-weight: bold;
+  line-height: 1;
+  text-align: center;
+}
+.card .corner.top {
+  top: 6px;
+  left: 7px;
+}
+.card .corner.bottom {
+  bottom: 6px;
+  right: 7px;
+  transform: rotate(180deg);
+}
+.card .center-suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 40px;
+  line-height: 1;
+}
+.card.red { color: #d61f26; }
+.card.black { color: #111; }
+.card-back {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #1e3a8a 0px,
+      #1e3a8a 6px,
+      #254aa8 6px,
+      #254aa8 12px
+    );
+  border: 4px solid #fff;
+}
+.card-back::after {
+  content: "♠";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #dbeafe;
+  font-size: 30px;
+  opacity: .8;
+}
+.players {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+.player {
+  background: #1c4f38;
+  border: 2px solid #2f6f52;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: .15s;
+}
+.player:hover {
+  border-color: #fbbf24;
+  background: #206044;
+}
+.player.correct {
+  border-color: #22c55e;
+  background: #14532d;
+}
+.player.wrong {
+  border-color: #ef4444;
+  background: #7f1d1d;
+}
+.player.dealer-choice {
+  border-color: #fbbf24;
+  background: #713f12;
+}
+.player-name {
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.player-cards {
+  display: flex;
+  gap: 7px;
+}
+.player-cards .card {
+  width: 58px;
+  height: 84px;
+}
+.player-cards .corner {
+  font-size: 13px;
+}
+.player-cards .center-suit {
+  font-size: 28px;
+}
+.answers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+}
+.answer-btn {
+  padding: 14px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #fbbf24;
+  color: #222;
+  font-weight: bold;
+}
+.answer-btn:hover { background: #fcd34d; }
+.answer-btn.correct {
+  background: #22c55e;
+  color: #052e16;
+}
+.answer-btn.wrong {
+  background: #ef4444;
+  color: #450a0a;
+}
+.controls {
+  text-align: center;
+  margin-top: 20px;
+}
+button {
+  padding: 12px 22px;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #fbbf24;
+  color: #222;
+}
+button:hover { background: #fcd34d; }
+.levels {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.level-btn {
+  background: #334155;
+  color: #fff;
+}
+.level-btn.active {
+  background: #fbbf24;
+  color: #111;
+}
+#result1,
+#result2 {
+  text-align: center;
+  font-weight: bold;
+  min-height: 26px;
+  margin-top: 14px;
+}
+#score1,
+#score2 {
+  text-align: center;
+  margin-bottom: 12px;
+  font-weight: bold;
+}
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>Покерные тренажёры</h1>
+
+  <div class="game-tabs">
+    <button class="game-tab active" data-game="game1">Кто забирает кон?</button>
+    <button class="game-tab" data-game="game2">Определи комбинацию</button>
+  </div>
+
+  <!-- ИГРА 1 -->
+  <div class="game active" id="game1">
+    <div class="levels">
+      <button class="level-btn active" data-players="3">Легко: 3 игрока</button>
+      <button class="level-btn" data-players="5">Средне: 5 игроков</button>
+      <button class="level-btn" data-players="7">Сложно: 7 игроков</button>
+      <button class="level-btn" data-players="9">Хардкор: 9 игроков</button>
+    </div>
+
+    <div id="score1">Верно: 0 | Неверно: 0</div>
+
+    <div class="board">
+      <div class="board-title">Общие карты</div>
+      <div class="cards" id="board1"></div>
+    </div>
+
+    <div class="players" id="players"></div>
+
+    <div id="result1"></div>
+
+    <div class="controls">
+      <button id="newRound">Новый кон</button>
+      <button id="revealCards">Открыть карты (крупье)</button>
+      <button id="checkWinner">Проверить победителя</button>
+      <button id="showAnswer" class="hidden">Показать победителя</button>
+    </div>
+  </div>
+
+  <!-- ИГРА 2 -->
+  <div class="game" id="game2">
+    <div id="score2">Верно: 0 | Неверно: 0</div>
+
+<div class="board">
+  <div class="board-title">Общие карты</div>
+  <div class="cards" id="board2"></div>
+</div>
+
+<div class="board">
+  <div class="board-title">Карты в руке</div>
+  <div class="cards" id="hand2"></div>
+</div>
+    <div class="answers" id="answers2"></div>
+
+    <div id="result2"></div>
+
+    <div class="controls">
+      <button id="newHand2">Новая раздача</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var suits = ["♠", "♥", "♦", "♣"];
+var ranks = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+var rankIndex = {};
+for (var i = 0; i < ranks.length; i++) rankIndex[ranks[i]] = i;
+
+var handNames = [
+  "Старшая карта",
+  "Пара",
+  "Две пары",
+  "Сет / Тройка",
+  "Стрит",
+  "Флеш",
+  "Фулл-хаус",
+  "Каре",
+  "Стрит-флеш"
+];
+
+/* GAME 1 */
+var playerCount = 3;
+var correct1 = 0;
+var wrong1 = 0;
+var answered1 = false;
+var dealerMode = false;
+var dealerChoice = -1;
+var winnerIndex = 0;
+var playersData = [];
+
+/* GAME 2 */
+var correct2 = 0;
+var wrong2 = 0;
+var answered2 = false;
+var currentHandValue = null;
+var currentHandName = "";
+
+function randomItem(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+  }
+  return a;
+}
+
+function makeDeck() {
+  var deck = [];
+  for (var s = 0; s < suits.length; s++) {
+    for (var r = 0; r < ranks.length; r++) {
+      deck.push({ rank: ranks[r], suit: suits[s] });
+    }
+  }
+  return shuffle(deck);
+}
+
+function evaluate7(cards) {
+  var best = null;
+
+  for (var a = 0; a < 7; a++) {
+    for (var b = a + 1; b < 7; b++) {
+      for (var c = b + 1; c < 7; c++) {
+        for (var d = c + 1; d < 7; d++) {
+          for (var e = d + 1; e < 7; e++) {
+            var hand = [cards[a], cards[b], cards[c], cards[d], cards[e]];
+            var value = evaluate5(hand);
+
+            if (best === null || compareValues(value, best) > 0) {
+              best = value;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+function evaluate5(cards) {
+  var values = [];
+  var suitsCount = {};
+  var ranksCount = {};
+
+  for (var i = 0; i < 5; i++) {
+    var v = rankIndex[cards[i].rank];
+    values.push(v);
+
+    suitsCount[cards[i].suit] = (suitsCount[cards[i].suit] || 0) + 1;
+    ranksCount[cards[i].rank] = (ranksCount[cards[i].rank] || 0) + 1;
+  }
+
+  values.sort(function(x, y) {
+    return y - x;
+  });
+
+  var isFlush = false;
+  for (var suit in suitsCount) {
+    if (suitsCount[suit] === 5) isFlush = true;
+  }
+
+  var isStraight = false;
+  var straightHigh = -1;
+
+  var unique = [];
+  for (var j = 0; j < values.length; j++) {
+    if (unique.indexOf(values[j]) === -1) unique.push(values[j]);
+  }
+  unique.sort(function(x, y) {
+    return y - x;
+  });
+
+  if (unique.length === 5) {
+    if (unique[0] - unique[4] === 4) {
+      isStraight = true;
+      straightHigh = unique[0];
+    }
+
+    if (
+      unique[0] === 12 &&
+      unique[1] === 3 &&
+      unique[2] === 2 &&
+      unique[3] === 1 &&
+      unique[4] === 0
+    ) {
+      isStraight = true;
+      straightHigh = 3;
+    }
+  }
+
+  var counts = [];
+  for (var rank in ranksCount) {
+    counts.push({
+      rank: rankIndex[rank],
+      count: ranksCount[rank]
+    });
+  }
+
+  counts.sort(function(x, y) {
+    if (y.count !== x.count) return y.count - x.count;
+    return y.rank - x.rank;
+  });
+
+  if (isStraight && isFlush) {
+    return [8, straightHigh];
+  }
+
+  if (counts[0].count === 4) {
+    return [7, counts[0].rank, counts[1].rank];
+  }
+
+  if (counts[0].count === 3 && counts[1].count === 2) {
+    return [6, counts[0].rank, counts[1].rank];
+  }
+
+  if (isFlush) {
+    return [5, values[0], values[1], values[2], values[3], values[4]];
+  }
+
+  if (isStraight) {
+    return [4, straightHigh];
+  }
+
+  if (counts[0].count === 3) {
+    return [3, counts[0].rank, counts[1].rank, counts[2].rank];
+  }
+
+  if (counts[0].count === 2 && counts[1].count === 2) {
+    return [2, counts[0].rank, counts[1].rank, counts[2].rank];
+  }
+
+  if (counts[0].count === 2) {
+    return [1, counts[0].rank, counts[1].rank, counts[2].rank, counts[3].rank];
+  }
+
+  return [0, values[0], values[1], values[2], values[3], values[4]];
+}
+
+function compareValues(a, b) {
+  for (var i = 0; i < Math.max(a.length, b.length); i++) {
+    var x = a[i] === undefined ? -1 : a[i];
+    var y = b[i] === undefined ? -1 : b[i];
+
+    if (x !== y) return x - y;
+  }
+  return 0;
+}
+
+function handName(value) {
+  if (value[0] === 8 && value[1] === 12) return "Royal Flush";
+  return handNames[value[0]];
+}
+
+function cardHtml(card) {
+  var colorClass = (card.suit === "♥" || card.suit === "♦") ? "red" : "black";
+
+  return '' +
+    '<div class="card ' + colorClass + '">' +
+      '<div class="corner top">' + card.rank + '<br>' + card.suit + '</div>' +
+      '<div class="center-suit">' + card.suit + '</div>' +
+      '<div class="corner bottom">' + card.rank + '<br>' + card.suit + '</div>' +
+    '</div>';
+}
+
+/* ==================== GAME 1 ==================== */
+
+function newRound() {
+  answered1 = false;
+  dealerMode = false;
+  dealerChoice = -1;
+
+  document.getElementById("result1").textContent = "";
+  document.getElementById("showAnswer").classList.add("hidden");
+  document.getElementById("revealCards").textContent = "Открыть карты (крупье)";
+
+  var deck = makeDeck();
+  var board = deck.slice(0, 5);
+  var rest = deck.slice(5);
+
+  playersData = [];
+
+  for (var i = 0; i < playerCount; i++) {
+    var hole = [rest[i * 2], rest[i * 2 + 1]];
+    var allCards = hole.concat(board);
+
+    playersData.push({
+      hole: hole,
+      value: evaluate7(allCards)
+    });
+  }
+
+  var bestValue = playersData[0].value;
+  var bestIndexes = [0];
+
+  for (var p = 1; p < playersData.length; p++) {
+    var cmp = compareValues(playersData[p].value, bestValue);
+
+    if (cmp > 0) {
+      bestValue = playersData[p].value;
+      bestIndexes = [p];
+    } else if (cmp === 0) {
+      bestIndexes.push(p);
+    }
+  }
+
+  if (bestIndexes.length !== 1) {
+    newRound();
+    return;
+  }
+
+  winnerIndex = bestIndexes[0];
+
+  renderBoard1(board);
+  renderPlayers();
+}
+
+function renderBoard1(board) {
+  var boardDiv = document.getElementById("board1");
+  boardDiv.innerHTML = "";
+
+  for (var i = 0; i < board.length; i++) {
+    boardDiv.innerHTML += cardHtml(board[i]);
+  }
+}
+
+function renderPlayers() {
+  var playersDiv = document.getElementById("players");
+  playersDiv.innerHTML = "";
+
+  for (var i = 0; i < playersData.length; i++) {
+    var div = document.createElement("div");
+    div.className = "player";
+    div.dataset.index = i;
+
+    div.innerHTML =
+      '<div class="player-name">Игрок ' + (i + 1) + '</div>' +
+      '<div class="player-cards">' +
+        '<div class="card card-back"></div>' +
+        '<div class="card card-back"></div>' +
+      '</div>';
+
+    div.onclick = function() {
+      handlePlayerClick(this);
+    };
+
+    playersDiv.appendChild(div);
+  }
+}
+
+function revealCards(element) {
+  var index = parseInt(element.dataset.index, 10);
+  var player = playersData[index];
+
+  var cardsDiv = element.querySelector(".player-cards");
+  cardsDiv.innerHTML = cardHtml(player.hole[0]) + cardHtml(player.hole[1]);
+}
+
+function revealAllCards() {
+  var players = document.querySelectorAll(".player");
+
+  for (var i = 0; i < players.length; i++) {
+    revealCards(players[i]);
+  }
+}
+
+function handlePlayerClick(element) {
+  if (dealerMode) {
+    chooseDealerWinner(element);
+    return;
+  }
+
+  choosePlayer(element);
+}
+
+function choosePlayer(element) {
+  if (answered1) return;
+  answered1 = true;
+
+  var index = parseInt(element.dataset.index, 10);
+
+  revealAllCards();
+
+  if (index === winnerIndex) {
+    correct1++;
+    element.classList.add("correct");
+
+    document.getElementById("result1").textContent =
+      "Верно! Игрок " + (winnerIndex + 1) + " забирает кон: " +
+      handName(playersData[winnerIndex].value);
+  } else {
+    wrong1++;
+    element.classList.add("wrong");
+
+    document.getElementById("result1").textContent =
+      "Неверно. Победитель — Игрок " + (winnerIndex + 1) + ": " +
+      handName(playersData[winnerIndex].value);
+  }
+
+  document.getElementById("score1").textContent =
+    "Верно: " + correct1 + " | Неверно: " + wrong1;
+
+  document.getElementById("showAnswer").classList.remove("hidden");
+}
+
+function chooseDealerWinner(element) {
+  var players = document.querySelectorAll(".player");
+
+  for (var i = 0; i < players.length; i++) {
+    players[i].classList.remove("dealer-choice");
+  }
+
+  element.classList.add("dealer-choice");
+
+  dealerChoice = parseInt(element.dataset.index, 10);
+
+  document.getElementById("result1").textContent =
+    "Крупье выбрал Игрока " + (dealerChoice + 1) +
+    ". Нажмите «Проверить победителя».";
+}
+
+function checkDealerWinner() {
+  if (!dealerMode) {
+    document.getElementById("result1").textContent =
+      "Сначала включите режим крупье: «Открыть карты (крупье)».";
+    return;
+  }
+
+  if (dealerChoice === -1) {
+    document.getElementById("result1").textContent =
+      "Сначала выберите игрока, который забирает кон.";
+    return;
+  }
+
+  if (answered1) return;
+  answered1 = true;
+
+  var players = document.querySelectorAll(".player");
+
+  if (dealerChoice === winnerIndex) {
+    correct1++;
+    players[dealerChoice].classList.add("correct");
+
+    document.getElementById("result1").textContent =
+      "Верно! Игрок " + (winnerIndex + 1) + " забирает кон: " +
+      handName(playersData[winnerIndex].value);
+  } else {
+    wrong1++;
+    players[dealerChoice].classList.add("wrong");
+    players[winnerIndex].classList.add("correct");
+
+    document.getElementById("result1").textContent =
+      "Неверно. Крупье выбрал Игрока " + (dealerChoice + 1) +
+      ", но победил Игрок " + (winnerIndex + 1) + ": " +
+      handName(playersData[winnerIndex].value);
+  }
+
+  document.getElementById("score1").textContent =
+    "Верно: " + correct1 + " | Неверно: " + wrong1;
+
+  document.getElementById("showAnswer").classList.remove("hidden");
+}
+
+document.getElementById("revealCards").onclick = function() {
+  dealerMode = true;
+  revealAllCards();
+
+  this.textContent = "Карты открыты — выберите победителя";
+
+  document.getElementById("result1").textContent =
+    "Режим крупье: откройте карты и нажмите на игрока, который забирает кон.";
+};
+
+document.getElementById("checkWinner").onclick = function() {
+  checkDealerWinner();
+};
+
+document.getElementById("showAnswer").onclick = function() {
+  var players = document.querySelectorAll(".player");
+  players[winnerIndex].classList.add("correct");
+
+  document.getElementById("result1").textContent =
+    "Победитель — Игрок " + (winnerIndex + 1) + ": " +
+    handName(playersData[winnerIndex].value);
+};
+
+document.getElementById("newRound").onclick = function() {
+  newRound();
+};
+
+var levelButtons = document.querySelectorAll(".level-btn");
+for (var b = 0; b < levelButtons.length; b++) {
+  levelButtons[b].onclick = function() {
+    for (var k = 0; k < levelButtons.length; k++) {
+      levelButtons[k].classList.remove("active");
+    }
+
+    this.classList.add("active");
+    playerCount = parseInt(this.dataset.players, 10);
+
+    newRound();
+  };
+}
+
+/* ==================== GAME 2 ==================== */
+
+function newHand2() {
+  answered2 = false;
+
+  document.getElementById("result2").textContent = "";
+
+  var deck = makeDeck();
+  var hand = deck.slice(0, 2);
+  var board = deck.slice(2, 7);
+  var allCards = hand.concat(board);
+
+  currentHandValue = evaluate7(allCards);
+  currentHandName = handName(currentHandValue);
+
+  document.getElementById("hand2").innerHTML =
+    cardHtml(hand[0]) + cardHtml(hand[1]);
+
+  document.getElementById("board2").innerHTML = "";
+  for (var i = 0; i < board.length; i++) {
+    document.getElementById("board2").innerHTML += cardHtml(board[i]);
+  }
+
+  var options = [currentHandName];
+
+  while (options.length < 4) {
+    var option = randomItem(handNames);
+
+    if (option === "Royal Flush") option = "Стрит-флеш";
+
+    if (options.indexOf(option) === -1) {
+      options.push(option);
+    }
+  }
+
+  options = shuffle(options);
+
+  var answersDiv = document.getElementById("answers2");
+  answersDiv.innerHTML = "";
+
+  for (var j = 0; j < options.length; j++) {
+    var btn = document.createElement("button");
+    btn.className = "answer-btn";
+    btn.textContent = options[j];
+
+    btn.onclick = function() {
+      checkHand2(this);
+    };
+
+    answersDiv.appendChild(btn);
+  }
+}
+
+function checkHand2(button) {
+  if (answered2) return;
+  answered2 = true;
+
+  var buttons = document.querySelectorAll("#answers2 .answer-btn");
+
+  for (var i = 0; i < buttons.length; i++) {
+    if (buttons[i].textContent === currentHandName) {
+      buttons[i].classList.add("correct");
+    }
+  }
+
+  if (button.textContent === currentHandName) {
+    correct2++;
+    document.getElementById("result2").textContent =
+      "Верно! Это " + currentHandName + ".";
+  } else {
+    wrong2++;
+    button.classList.add("wrong");
+
+    document.getElementById("result2").textContent =
+      "Неверно. Правильная комбинация: " + currentHandName + ".";
+  }
+
+  document.getElementById("score2").textContent =
+    "Верно: " + correct2 + " | Неверно: " + wrong2;
+}
+
+document.getElementById("newHand2").onclick = function() {
+  newHand2();
+};
+
+/* ==================== TABS ==================== */
+
+var gameTabs = document.querySelectorAll(".game-tab");
+for (var t = 0; t < gameTabs.length; t++) {
+  gameTabs[t].onclick = function() {
+    for (var k = 0; k < gameTabs.length; k++) {
+      gameTabs[k].classList.remove("active");
+    }
+
+    this.classList.add("active");
+
+    var games = document.querySelectorAll(".game");
+    for (var g = 0; g < games.length; g++) {
+      games[g].classList.remove("active");
+    }
+
+    document.getElementById(this.dataset.game).classList.add("active");
+  };
+}
+
+newRound();
+newHand2();
+</script>
+
+</body>
+</html>
