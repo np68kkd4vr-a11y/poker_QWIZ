@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Покерные тренажёры</title>
+
+<style>
+:root {
+  color-scheme: dark;
+  --gold: #f3c760;
+  --green: #47e99a;
+  --red: #ff7373;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 18px;
+  background: #08150f;
+  color: #f5f3e9;
+  font-family: Arial, sans-serif;
+}
+
+.wrap {
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 8px 0 18px;
+  text-align: center;
+  font-size: 28px;
+}
+
+button {
+  padding: 12px 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--gold);
+  color: #241b08;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+
+button:hover:not(:disabled) {
+  background: #ffdc83;
+}
+
+button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+.player:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 3px;
+}
+
+.tabs,
+.levels,
+.controls,
+.stats {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tabs {
+  margin-bottom: 18px;
+}
+
+.tab,
+.level {
+  background: #213b30;
+  color: #edf4ed;
+  border-color: #385345;
+}
+
+.tab.active,
+.level.active {
+  background: var(--gold);
+  color: #241b08;
+  border-color: var(--gold);
+}
+
+.game {
+  display: none;
+}
+
+.game.active {
+  display: block;
+}
+
+.levels {
+  margin-bottom: 16px;
+}
+
+.stats {
+  margin-bottom: 10px;
+  color: #e4eadd;
+  font-size: 15px;
+}
+
+.stat {
+  padding: 8px 14px;
+  border: 1px solid #294636;
+  border-radius: 20px;
+  background: #11271c;
+}
+
+.description {
+  margin: 10px auto;
+  text-align: center;
+  color: #ccd6cc;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* Обёртка для прокрутки на телефоне */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding: 8px 0 14px;
+  scrollbar-color: #9e823e #132a1d;
+}
+
+/* Размеры и пропорции присланного изображения */
+.poker-table {
+  position: relative;
+  width: 100%;
+  min-width: 760px;
+  aspect-ratio: 1280 / 601;
+
+  background-color: #003409;
+  background-image: url("stol-pokera.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+
+  border-radius: 24px;
+  overflow: hidden;
+  isolation: isolate;
+
+  container-type: inline-size;
+}
+
+/* Общие карты */
+.community {
+  position: absolute;
+  left: 50.7%;
+  top: 48.3%;
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: .42cqw;
+
+  z-index: 3;
+}
+
+/* Игральная карта */
+.card {
+  position: relative;
+  flex-shrink: 0;
+
+  width: 4.45cqw;
+  height: 6.35cqw;
+
+  border: 1px solid #d7d2c6;
+  border-radius: .48cqw;
+  background: #fffef9;
+  color: #111820;
+
+  box-shadow:
+    0 .25cqw .55cqw rgba(0, 0, 0, .45),
+    inset 0 0 0 1px rgba(255, 255, 255, .6);
+
+  user-select: none;
+}
+
+.card.red {
+  color: #cb1525;
+}
+
+.card.black {
+  color: #111820;
+}
+
+.corner {
+  position: absolute;
+  font-size: 1.26cqw;
+  font-weight: 800;
+  line-height: .98;
+  text-align: center;
+}
+
+.corner.top {
+  top: .35cqw;
+  left: .34cqw;
+}
+
+.corner.bottom {
+  bottom: .35cqw;
+  right: .34cqw;
+  transform: rotate(180deg);
+}
+
+.center-suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.7cqw;
+  line-height: 1;
+}
+
+.card.back {
+  border: .25cqw solid #fffef9;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #173b80 0,
+      #173b80 .34cqw,
+      #2c58a2 .34cqw,
+      #2c58a2 .68cqw
+    );
+}
+
+.card.back::after {
+  content: "♠";
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  color: #e3eaff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3cqw;
+}
+
+/* Подсветка карт лучшей комбинации */
+.card.best-card {
+  outline: .2cqw solid #ffe084;
+  outline-offset: .1cqw;
+  box-shadow: 0 0 1cqw rgba(255, 224, 132, .65);
+}
+
+/* Игроки по периметру */
+.players {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.player {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+
+  width: 11.2cqw;
+  padding: .45cqw;
+
+  border: 2px solid transparent;
+  border-radius: .8cqw;
+  background: rgba(0, 20, 8, .75);
+
+  color: #fff;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+
+  box-shadow: 0 .25cqw .8cqw rgba(0, 0, 0, .25);
+  transition: border-color .15s, background .15s;
+}
+
+.player:hover {
+  background: rgba(13, 56, 29, .95);
+  border-color: var(--gold);
+}
+
+.player-name {
+  margin-bottom: .35cqw;
+  color: #fff1bb;
+  font-size: 1.15cqw;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.player-cards {
+  display: flex;
+  justify-content: center;
+  gap: .42cqw;
+}
+
+.player.selected {
+  border-color: #ffd15c;
+  background: rgba(100, 67, 8, .95);
+  box-shadow: 0 0 1cqw rgba(255, 209, 92, .4);
+}
+
+.player.correct {
+  border-color: var(--green);
+  background: rgba(8, 76, 40, .97);
+  box-shadow: 0 0 1cqw rgba(34, 230, 118, .5);
+}
+
+.player.wrong {
+  border-color: var(--red);
+  background: rgba(106, 20, 24, .97);
+  box-shadow: 0 0 1cqw rgba(255, 70, 70, .4);
+}
+
+/* Карты игрока во второй игре */
+.own-hand {
+  position: absolute;
+  left: 50.7%;
+  top: 80%;
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  justify-content: center;
+  gap: .6cqw;
+
+  z-index: 4;
+}
+
+.hand-label {
+  position: absolute;
+  left: 50.7%;
+  top: 66%;
+  transform: translate(-50%, -50%);
+
+  padding: .35cqw 1cqw;
+  border: 1px solid rgba(239, 198, 101, .7);
+  border-radius: 2cqw;
+
+  background: rgba(0, 25, 8, .9);
+  color: #ffe7a3;
+
+  font-size: 1.15cqw;
+  font-weight: bold;
+  white-space: nowrap;
+
+  z-index: 4;
+}
+
+.controls {
+  margin-top: 12px;
+}
+
+.secondary {
+  background: #294437;
+  color: #fff;
+  border-color: #476553;
+}
+
+.secondary:hover:not(:disabled) {
+  background: #385b49;
+}
+
+.result {
+  min-height: 48px;
+  margin: 14px 0 8px;
+  text-align: center;
+  line-height: 1.6;
+  font-weight: bold;
+}
+
+.result.success {
+  color: #82f4b3;
+}
+
+.result.error {
+  color: #ffaaaa;
+}
+
+/* Все варианты комбинаций */
+.answers {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.answer {
+  min-height: 54px;
+  background: #213b30;
+  border-color: #45634f;
+  color: #fff4d4;
+}
+
+.answer:hover:not(:disabled) {
+  background: #365b44;
+}
+
+.answer.correct {
+  background: #15643b;
+  border-color: var(--green);
+  color: #e7fff1;
+  opacity: 1;
+}
+
+.answer.wrong {
+  background: #812c31;
+  border-color: var(--red);
+  color: white;
+  opacity: 1;
+}
+
+/* Разбор раздачи */
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.detail {
+  padding: 12px;
+  border: 1px solid #36533e;
+  border-radius: 10px;
+  background: #11271b;
+  line-height: 1.5;
+}
+
+.detail.winner {
+  border-color: var(--green);
+}
+
+.detail-title {
+  color: #f4d788;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+.detail-cards {
+  margin-top: 5px;
+  color: #cbdacb;
+  font-size: 14px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+noscript {
+  display: block;
+  padding: 16px;
+  background: #742727;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .answers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  button {
+    padding: 11px 13px;
+    font-size: 14px;
+  }
+
+  .tabs button {
+    flex: 1;
+  }
+
+  .description {
+    font-size: 13px;
+  }
+
+  .poker-table {
+    border-radius: 14px;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <h1>Покерные тренажёры</h1>
+
+  <noscript>
+    Для работы игры необходимо включить JavaScript в браузере.
+  </noscript>
+
+  <div class="tabs">
+    <button class="tab active" data-game="game1">
+      Кто забирает кон?
+    </button>
+
+    <button class="tab" data-game="game2">
+      Определи комбинацию
+    </button>
+  </div>
+
+  <!-- ПЕРВАЯ МИНИ-ИГРА -->
+  <section class="game active" id="game1">
+    <div class="levels">
+      <button class="level active" data-count="3">
+        Уровень 1 · 3 игрока
+      </button>
+
+      <button class="level" data-count="5">
+        Уровень 2 · 5 игроков
+      </button>
+
+      <button class="level" data-count="7">
+        Уровень 3 · 7 игроков
+      </button>
+
+      <button class="level" data-count="9">
+        Уровень 4 · 9 игроков
+      </button>
+    </div>
+
+    <div class="stats">
+      <span class="stat" id="score1">Верно: 0 · Неверно: 0</span>
+    </div>
+
+    <p class="description">
+      Нажатие на игрока открывает только его карты.
+      Чтобы выбрать победителя, сначала откройте все карты
+      кнопкой ниже.
+    </p>
+
+    <div class="table-scroll">
+      <div class="poker-table">
+        <div class="community" id="board1"></div>
+        <div class="players" id="players1"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="newRound1">Новый кон</button>
+
+      <button id="openAll1">
+        Открыть карты (крупье)
+      </button>
+
+      <button id="check1" disabled>
+        Проверить победителя
+      </button>
+
+      <button id="show1" class="secondary">
+        Показать ответ
+      </button>
+    </div>
+
+    <div class="result" id="result1" aria-live="polite"></div>
+    <div class="details hidden" id="details1"></div>
+  </section>
+
+  <!-- ВТОРАЯ МИНИ-ИГРА -->
+  <section class="game" id="game2">
+    <div class="stats">
+      <span class="stat" id="score2">Верно: 0 · Неверно: 0</span>
+    </div>
+
+    <p class="description">
+      Общие карты — в центре, ваши две карты — снизу.
+      Выберите самую сильную комбинацию, которую можно собрать
+      из этих семи карт.
+    </p>
+
+    <div class="table-scroll">
+      <div class="poker-table">
+        <div class="community" id="board2"></div>
+
+        <div class="hand-label">
+          ВАША РУКА
+        </div>
+
+        <div class="own-hand" id="hand2"></div>
+      </div>
+    </div>
+
+    <div class="answers" id="answers2"></div>
+
+    <div class="result" id="result2" aria-live="polite"></div>
+
+    <div class="controls">
+      <button id="newRound2">Новая раздача</button>
+
+      <button id="show2" class="secondary">
+        Показать ответ
+      </button>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+
+/* ================= ОБЩИЕ ДАННЫЕ ================= */
+
+const SUITS = ["♠", "♥", "♦", "♣"];
+const RANKS = [
+  "2", "3", "4", "5", "6", "7", "8",
+  "9", "10", "J", "Q", "K", "A"
+];
+
+const HAND_NAMES = [
+  "Старшая карта",
+  "Пара",
+  "Две пары",
+  "Тройка",
+  "Стрит",
+  "Флеш",
+  "Фулл-хаус",
+  "Каре",
+  "Стрит-флеш",
+  "Роял-флеш"
+];
+
+const SEATS = {
+  3: [
+    [16, 48],
+    [50.7, 80],
+    [85, 48]
+  ],
+
+  5: [
+    [16, 48],
+    [32, 80],
+    [50.7, 80],
+    [70, 80],
+    [85, 48]
+  ],
+
+  7: [
+    [28, 19],
+    [16, 48],
+    [32, 80],
+    [50.7, 80],
+    [70, 80],
+    [85, 48],
+    [73, 19]
+  ],
+
+  9: [
+    [28, 19],
+    [15, 37],
+    [16, 62],
+    [32, 80],
+    [50.7, 80],
+    [70, 80],
+    [85, 62],
+    [86, 37],
+    [73, 19]
+  ]
+};
+
+const $ = id => document.getElementById(id);
+
+function shuffle(array) {
+  const result = array.slice();
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result;
+}
+
+function makeDeck() {
+  const deck = [];
+
+  for (const suit of SUITS) {
+    for (let i = 0; i < RANKS.length; i++) {
+      deck.push({
+        rank: RANKS[i],
+        suit: suit,
+        value: i + 2,
+        id: RANKS[i] + suit
+      });
+    }
+  }
+
+  return shuffle(deck);
+}
+
+/* ================= ОЦЕНКА КОМБИНАЦИЙ ================= */
+
+function compareValues(a, b) {
+  const length = Math.max(a.length, b.length);
+
+  for (let i = 0; i < length; i++) {
+    const difference = (a[i] || 0) - (b[i] || 0);
+
+    if (difference !== 0) return difference;
+  }
+
+  return 0;
+}
+
+function evaluate5(cards) {
+  const values = cards
+    .map(card => card.value)
+    .sort((a, b) => b - a);
+
+  const counts = new Map();
+
+  for (const value of values) {
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+
+  const groups = Array.from(
+    counts,
+    ([rank, count]) => ({ rank, count })
+  ).sort((a, b) => {
+    return b.count - a.count || b.rank - a.rank;
+  });
+
+  const flush = cards.every(card => {
+    return card.suit === cards[0].suit;
+  });
+
+  const unique = [...new Set(values)];
+
+  let straightHigh = 0;
+
+  if (unique.length === 5) {
+    if (unique[0] - unique[4] === 4) {
+      straightHigh = unique[0];
+    }
+
+    if (unique.join(",") === "14,5,4,3,2") {
+      straightHigh = 5;
+    }
+  }
+
+  if (flush && straightHigh) {
+    return [8, straightHigh];
+  }
+
+  if (groups[0].count === 4) {
+    return [7, groups[0].rank, groups[1].rank];
+  }
+
+  if (groups[0].count === 3 && groups[1].count === 2) {
+    return [6, groups[0].rank, groups[1].rank];
+  }
+
+  if (flush) {
+    return [5, ...values];
+  }
+
+  if (straightHigh) {
+    return [4, straightHigh];
+  }
+
+  if (groups[0].count === 3) {
+    return [
+      3,
+      groups[0].rank,
+      groups[1].rank,
+      groups[2].rank
+    ];
+  }
+
+  if (groups[0].count === 2 && groups[1].count === 2) {
+    return [
+      2,
+      groups[0].rank,
+      groups[1].rank,
+      groups[2].rank
+    ];
+  }
+
+  if (groups[0].count === 2) {
+    return [
+      1,
+      groups[0].rank,
+      groups[1].rank,
+      groups[2].rank,
+      groups[3].rank
+    ];
+  }
+
+  return [0, ...values];
+}
+
+function evaluate7(cards) {
+  let best = null;
+
+  for (let a = 0; a < 3; a++) {
+    for (let b = a + 1; b < 4; b++) {
+      for (let c = b + 1; c < 5; c++) {
+        for (let d = c + 1; d < 6; d++) {
+          for (let e = d + 1; e < 7; e++) {
+            const five = [
+              cards[a],
+              cards[b],
+              cards[c],
+              cards[d],
+              cards[e]
+            ];
+
+            const value = evaluate5(five);
+
+            if (!best || compareValues(value, best.value) > 0) {
+              best = {
+                value: value,
+                cards: five
+              };
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+function categoryIndex(value) {
+  if (value[0] === 8 && value[1] === 14) {
+    return 9;
+  }
+
+  return value[0];
+}
+
+function handName(value) {
+  return HAND_NAMES[categoryIndex(value)];
+}
+
+function rankText(value) {
+  return RANKS[value - 2];
+}
+
+function describeHand(value) {
+  const category = value[0];
+  const name = handName(value);
+
+  if (categoryIndex(value) === 9) {
+    return name;
+  }
+
+  if (category === 8 || category === 4) {
+    return name + " до " + rankText(value[1]);
+  }
+
+  if (category === 7 || category === 3) {
+    return name + ": " + rankText(value[1]);
+  }
+
+  if (category === 6) {
+    return name + ": " +
+      rankText(value[1]) + " + " +
+      rankText(value[2]);
+  }
+
+  if (category === 2) {
+    return name + ": " +
+      rankText(value[1]) + " и " +
+      rankText(value[2]) +
+      ", кикер " + rankText(value[3]);
+  }
+
+  if (category === 1) {
+    return name + ": " +
+      rankText(value[1]) +
+      ", кикеры " +
+      value.slice(2).map(rankText).join(", ");
+  }
+
+  if (category === 5) {
+    return name + ": " +
+      value.slice(1).map(rankText).join(", ");
+  }
+
+  return name + ": " +
+    value.slice(1).map(rankText).join(", ");
+}
+
+/* ================= ОТРИСОВКА КАРТ ================= */
+
+function cardHtml(card, highlightedIds) {
+  const color = (
+    card.suit === "♥" || card.suit === "♦"
+  ) ? "red" : "black";
+
+  const highlighted = (
+    highlightedIds && highlightedIds.has(card.id)
+  ) ? " best-card" : "";
+
+  return `
+    <div
+      class="card ${color}${highlighted}"
+      role="img"
+      aria-label="${card.rank} ${card.suit}"
+    >
+      <div class="corner top">
+        ${card.rank}<br>${card.suit}
+      </div>
+
+      <div class="center-suit">
+        ${card.suit}
+      </div>
+
+      <div class="corner bottom">
+        ${card.rank}<br>${card.suit}
+      </div>
+    </div>
+  `;
+}
+
+function backHtml() {
+  return `
+    <div class="card back" aria-label="Закрытая карта"></div>
+  `;
+}
+
+function renderCards(id, cards, highlightedIds) {
+  $(id).innerHTML = cards
+    .map(card => cardHtml(card, highlightedIds))
+    .join("");
+}
+
+function setResult(id, text, type) {
+  const element = $(id);
+
+  element.textContent = text;
+  element.className = "result" + (type ? " " + type : "");
+}
+
+/* ================= ИГРА 1 ================= */
+
+const game1 = {
+  count: 3,
+  correct: 0,
+  wrong: 0,
+  board: [],
+  players: [],
+  winner: -1,
+  selected: -1,
+  dealerMode: false,
+  finished: false
+};
+
+function updateScore1() {
+  $("score1").textContent =
+    "Верно: " + game1.correct +
+    " · Неверно: " + game1.wrong;
+}
+
+function newRound1() {
+  game1.selected = -1;
+  game1.dealerMode = false;
+  game1.finished = false;
+
+  /*
+    Для этой мини-игры оставляем раздачи
+    только с одним победителем.
+  */
+  while (true) {
+    const deck = makeDeck();
+
+    game1.board = deck.slice(0, 5);
+    game1.players = [];
+
+    for (let i = 0; i < game1.count; i++) {
+      const hole = deck.slice(
+        5 + i * 2,
+        7 + i * 2
+      );
+
+      game1.players.push({
+        hole: hole,
+        open: false,
+        best: evaluate7(hole.concat(game1.board))
+      });
+    }
+
+    let bestValue = game1.players[0].best.value;
+    let winners = [0];
+
+    for (let i = 1; i < game1.players.length; i++) {
+      const comparison = compareValues(
+        game1.players[i].best.value,
+        bestValue
+      );
+
+      if (comparison > 0) {
+        bestValue = game1.players[i].best.value;
+        winners = [i];
+      } else if (comparison === 0) {
+        winners.push(i);
+      }
+    }
+
+    if (winners.length === 1) {
+      game1.winner = winners[0];
+      break;
+    }
+  }
+
+  $("openAll1").disabled = false;
+  $("openAll1").textContent = "Открыть карты (крупье)";
+
+  $("check1").disabled = true;
+  $("show1").disabled = false;
+
+  $("details1").innerHTML = "";
+  $("details1").classList.add("hidden");
+
+  renderCards("board1", game1.board);
+  renderPlayers1();
+
+  setResult(
+    "result1",
+    "Откройте карты игроков по одному или нажмите «Открыть карты (крупье)»."
+  );
+}
+
+function renderPlayers1() {
+  const layout = SEATS[game1.count];
+  const container = $("players1");
+
+  container.innerHTML = "";
+
+  game1.players.forEach((player, index) => {
+    const element = document.createElement("div");
+
+    element.className = "player";
+    element.style.setProperty("--x", layout[index][0] + "%");
+    element.style.setProperty("--y", layout[index][1] + "%");
+
+    element.tabIndex = 0;
+    element.setAttribute("role", "button");
+    element.setAttribute("aria-label", "Игрок " + (index + 1));
+
+    if (game1.selected === index && !game1.finished) {
+      element.classList.add("selected");
+    }
+
+    if (game1.finished) {
+      if (index === game1.winner) {
+        element.classList.add("correct");
+      } else if (index === game1.selected) {
+        element.classList.add("wrong");
+      }
+    }
+
+    const cards = player.open
+      ? player.hole.map(card => cardHtml(card)).join("")
+      : backHtml() + backHtml();
+
+    element.innerHTML = `
+      <div class="player-name">
+        Игрок ${index + 1}
+      </div>
+
+      <div class="player-cards">
+        ${cards}
+      </div>
+    `;
+
+    element.onclick = () => clickPlayer1(index);
+
+    element.onkeydown = event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        clickPlayer1(index);
+      }
+    };
+
+    container.appendChild(element);
+  });
+}
+
+function clickPlayer1(index) {
+  if (game1.finished) return;
+
+  if (!game1.dealerMode) {
+    game1.players[index].open = true;
+
+    renderPlayers1();
+
+    setResult(
+      "result1",
+      "Карты Игрока " + (index + 1) +
+      " открыты. Для выбора победителя нажмите «Открыть карты (крупье)»."
+    );
+
+    return;
+  }
+
+  game1.selected = index;
+
+  renderPlayers1();
+
+  $("check1").disabled = false;
+
+  setResult(
+    "result1",
+    "Выбран Игрок " + (index + 1) +
+    ". Нажмите «Проверить победителя»."
+  );
+}
+
+function openAll1() {
+  if (game1.finished) return;
+
+  game1.dealerMode = true;
+
+  game1.players.forEach(player => {
+    player.open = true;
+  });
+
+  renderPlayers1();
+
+  $("openAll1").disabled = true;
+  $("openAll1").textContent = "Карты открыты";
+
+  setResult(
+    "result1",
+    "Теперь выберите игрока, который забирает кон."
+  );
+}
+
+function showDetails1() {
+  const container = $("details1");
+
+  container.innerHTML = game1.players.map((player, index) => {
+    const isWinner = index === game1.winner;
+
+    const bestCards = player.best.cards
+      .slice()
+      .sort((a, b) => b.value - a.value)
+      .map(card => card.rank + card.suit)
+      .join(" ");
+
+    return `
+      <div class="detail ${isWinner ? "winner" : ""}">
+        <div class="detail-title">
+          Игрок ${index + 1}${isWinner ? " — победитель" : ""}
+        </div>
+
+        <div>
+          ${describeHand(player.best.value)}
+        </div>
+
+        <div class="detail-cards">
+          Лучшая пятёрка: ${bestCards}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  container.classList.remove("hidden");
+}
+
+function finishRound1(checkAnswer) {
+  if (game1.finished) return;
+
+  if (checkAnswer && game1.selected === -1) return;
+
+  game1.finished = true;
+
+  game1.players.forEach(player => {
+    player.open = true;
+  });
+
+  const winnerText =
+    "Игрок " + (game1.winner + 1) +
+    " — " +
+    describeHand(game1.players[game1.winner].best.value);
+
+  if (checkAnswer) {
+    if (game1.selected === game1.winner) {
+      game1.correct++;
+
+      setResult(
+        "result1",
+        "Верно! " + winnerText + ".",
+        "success"
+      );
+    } else {
+      game1.wrong++;
+
+      setResult(
+        "result1",
+        "Неверно. Победитель: " + winnerText + ".",
+        "error"
+      );
+    }
+  } else {
+    setResult(
+      "result1",
+      "Ответ: " + winnerText +
+      ". Эта раздача не учитывается в счёте."
+    );
+  }
+
+  $("check1").disabled = true;
+  $("show1").disabled = true;
+  $("openAll1").disabled = true;
+
+  renderPlayers1();
+  showDetails1();
+  updateScore1();
+}
+
+/* ================= ИГРА 2 ================= */
+
+const game2 = {
+  correct: 0,
+  wrong: 0,
+  board: [],
+  hole: [],
+  best: null,
+  finished: false
+};
+
+function updateScore2() {
+  $("score2").textContent =
+    "Верно: " + game2.correct +
+    " · Неверно: " + game2.wrong;
+}
+
+function newRound2() {
+  const deck = makeDeck();
+
+  game2.board = deck.slice(0, 5);
+  game2.hole = deck.slice(5, 7);
+  game2.best = evaluate7(game2.board.concat(game2.hole));
+  game2.finished = false;
+
+  renderCards("board2", game2.board);
+  renderCards("hand2", game2.hole);
+
+  $("show2").disabled = false;
+  $("answers2").innerHTML = "";
+
+  HAND_NAMES.forEach((name, index) => {
+    const button = document.createElement("button");
+
+    button.className = "answer";
+    button.textContent = name;
+    button.dataset.category = index;
+
+    button.onclick = () => finishRound2(index);
+
+    $("answers2").appendChild(button);
+  });
+
+  setResult(
+    "result2",
+    "Выберите лучшую комбинацию из списка."
+  );
+}
+
+function finishRound2(selectedCategory) {
+  if (game2.finished) return;
+
+  game2.finished = true;
+
+  const correctCategory = categoryIndex(game2.best.value);
+  const showOnly = selectedCategory === null;
+
+  const buttons = $("answers2").querySelectorAll(".answer");
+
+  buttons.forEach(button => {
+    const category = Number(button.dataset.category);
+
+    button.disabled = true;
+
+    if (category === correctCategory) {
+      button.classList.add("correct");
+    }
+
+    if (
+      !showOnly &&
+      category === selectedCategory &&
+      selectedCategory !== correctCategory
+    ) {
+      button.classList.add("wrong");
+    }
+  });
+
+  const highlighted = new Set(
+    game2.best.cards.map(card => card.id)
+  );
+
+  renderCards("board2", game2.board, highlighted);
+  renderCards("hand2", game2.hole, highlighted);
+
+  const explanation =
+    describeHand(game2.best.value) +
+    ". Золотой рамкой выделена лучшая пятёрка карт.";
+
+  if (showOnly) {
+    setResult(
+      "result2",
+      "Ответ: " + explanation +
+      " Эта раздача не учитывается в счёте."
+    );
+  } else if (selectedCategory === correctCategory) {
+    game2.correct++;
+
+    setResult(
+      "result2",
+      "Верно! " + explanation,
+      "success"
+    );
+  } else {
+    game2.wrong++;
+
+    setResult(
+      "result2",
+      "Неверно. Правильный ответ: " + explanation,
+      "error"
+    );
+  }
+
+  $("show2").disabled = true;
+
+  updateScore2();
+}
+
+/* ================= КНОПКИ ================= */
+
+$("newRound1").onclick = newRound1;
+$("openAll1").onclick = openAll1;
+$("check1").onclick = () => finishRound1(true);
+$("show1").onclick = () => finishRound1(false);
+
+$("newRound2").onclick = newRound2;
+$("show2").onclick = () => finishRound2(null);
+
+document.querySelectorAll(".level").forEach(button => {
+  button.onclick = () => {
+    document.querySelectorAll(".level").forEach(item => {
+      item.classList.remove("active");
+    });
+
+    button.classList.add("active");
+
+    game1.count = Number(button.dataset.count);
+
+    newRound1();
+  };
+});
+
+document.querySelectorAll(".tab").forEach(button => {
+  button.onclick = () => {
+    document.querySelectorAll(".tab").forEach(item => {
+      item.classList.remove("active");
+    });
+
+    document.querySelectorAll(".game").forEach(item => {
+      item.classList.remove("active");
+    });
+
+    button.classList.add("active");
+
+    $(button.dataset.game).classList.add("active");
+  };
+});
+
+/* ================= ЗАПУСК ================= */
+
+newRound1();
+newRound2();
+
+</script>
+</body>
+</html>
